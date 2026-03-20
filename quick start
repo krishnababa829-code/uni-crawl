@@ -1,0 +1,27 @@
+!pip install opus-crawl
+!playwright install chromium
+
+from opus_crawl import BrowserEngine, NLPProcessor, LLMExtractor
+
+# Scrape
+engine = BrowserEngine()
+pages = await engine.crawl("https://example.com", max_depth=1, max_pages=10)
+
+# Process
+processor = NLPProcessor()
+for page in pages:
+    md = processor.to_markdown(page.html)
+    chunks = processor.chunk(md, strategy="sentence", max_tokens=512)
+    print(chunks[:2])
+
+# Extract structured data
+from pydantic import BaseModel
+
+class Article(BaseModel):
+    title: str
+    summary: str
+    tags: list[str]
+
+extractor = LLMExtractor(model_name="google/flan-t5-base")
+result = await extractor.extract(chunks, Article)
+print(result)
